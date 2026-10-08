@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic Report - AgriVision AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo-badge">🌿 Plant Pathology Diagnostic Report</div>
+      <h1>Leaf Disease Analysis & Prescription</h1>
+      <p class="subtitle">Complete visual inspection pipeline and agronomic management advice</p>
+    </header>
+
+    <!-- Visual Inspection Grid (Module 1 & 2 Output) -->
+    <div class="card">
+      <div class="card-title">
+        <span>🔬</span> Computer Vision Inspection Pipeline
+      </div>
+      
+      <div class="vision-grid">
+        <!-- 1. Original Input -->
+        <div class="vision-card">
+          <h4>1. Original Image</h4>
+          <img src="{{ image_urls.original }}" alt="Original Leaf" class="vision-preview">
+          <div class="vision-caption">Raw RGB Acquisition</div>
+        </div>
+
+        <!-- 2. Preprocessed -->
+        <div class="vision-card">
+          <h4>2. Preprocessed Image</h4>
+          <img src="{{ image_urls.preprocessed }}" alt="Preprocessed Leaf" class="vision-preview">
+          <div class="vision-caption">Gaussian Blur + 224x224</div>
+        </div>
+
+        <!-- 3. Segmented Leaf -->
+        <div class="vision-card">
+          <h4>3. Segmented Leaf</h4>
+          <img src="{{ image_urls.segmented }}" alt="Segmented Leaf" class="vision-preview">
+          <div class="vision-caption">HSV Color-Space Isolation</div>
+        </div>
+
+        <!-- 4. Highlighted Disease -->
+        <div class="vision-card">
+          <h4>4. Diseased Spots Highlighted</h4>
+          <img src="{{ image_urls.highlighted }}" alt="Highlighted Lesions" class="vision-preview">
+          <div class="vision-caption">Necrotic Lesion Overlay</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnostic Findings Card (Module 3 Output) -->
+    <div class="card">
+      <div class="diag-header">
+        <div>
+          <div class="diag-crop">{{ crop_name }} Leaf Analysis</div>
+          <div class="diag-title">{{ disease_name }}</div>
+          <p style="color: #64748b; font-size: 0.95rem; margin-top: 4px;">{{ description }}</p>
+        </div>
+
+        <div>
+          {% if is_healthy %}
+            <span class="badge badge-healthy">✓ HEALTHY LEAF</span>
+          {% else %}
+            <span class="badge badge-diseased">⚠ INFECTED LEAF</span>
+          {% endif %}
+          <div style="margin-top: 10px; text-align: right;">
+            <div style="font-size: 1.1rem; font-weight: 700; color: #1e293b;">
+              Confidence: {{ confidence }}%
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" style="width: {{ confidence }}%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Pathology Metrics -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+          <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Infection Extent</div>
+          <div style="font-size: 1.3rem; font-weight: 700; color: {% if is_healthy %}#16a34a{% else %}#dc2626{% endif %};">
+            {{ disease_stats.infection_percentage }}%
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+          <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Identified Lesions</div>
+          <div style="font-size: 1.3rem; font-weight: 700; color: #334155;">
+            {{ disease_stats.spot_count }} spots
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+          <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Leaf Surface Area</div>
+          <div style="font-size: 1.3rem; font-weight: 700; color: #334155;">
+            {{ disease_stats.total_leaf_area_px }} px
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+          <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Raw Dataset Class</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: #475569; word-break: break-all;">
+            {{ raw_class }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Module 4: Agronomic Prescription & Recommendations -->
+      <div class="advice-box treatment-box">
+        <div class="advice-title">
+          <span>💊</span> Recommended Treatment Action
+        </div>
+        <p style="font-size: 1rem; color: #7c2d12; font-weight: 500;">
+          {{ treatment }}
+        </p>
+      </div>
+
+      <div class="advice-box prevention-box">
+        <div class="advice-title">
+          <span>🛡️</span> Proactive Prevention & Cultural Practices
+        </div>
+        <p style="font-size: 1rem; color: #1e3a8a;">
+          {{ prevention }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Classical CV Features Accordion / Technical Inspection Card (For Viva) -->
+    <div class="card">
+      <div class="card-title">
+        <span>📊</span> Extracted Classical Features (GLCM & Morphometrics)
+      </div>
+      <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 12px;">
+        These parameters are calculated using traditional Computer Vision algorithms (scikit-image GLCM & OpenCV Contours).
+        In modern CNNs (MobileNetV2), convolutional kernels automatically learn internal feature representations corresponding to these textures:
+      </p>
+
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Feature Domain</th>
+            <th>Metric Name</th>
+            <th>Computed Value</th>
+            <th>Pathological Significance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GLCM Texture</strong></td>
+            <td>Contrast</td>
+            <td><code>{{ glcm_features.contrast }}</code></td>
+            <td>Measures local intensity variations (higher for rough/spotty lesions)</td>
+          </tr>
+          <tr>
+            <td><strong>GLCM Texture</strong></td>
+            <td>Homogeneity</td>
+            <td><code>{{ glcm_features.homogeneity }}</code></td>
+            <td>Measures texture smoothness (higher for smooth healthy leaf tissue)</td>
+          </tr>
+          <tr>
+            <td><strong>GLCM Texture</strong></td>
+            <td>Energy & Correlation</td>
+            <td><code>{{ glcm_features.energy }} / {{ glcm_features.correlation }}</code></td>
+            <td>Textural regularity and linear pixel dependency</td>
+          </tr>
+          <tr>
+            <td><strong>Leaf Shape</strong></td>
+            <td>Circularity / Compactness</td>
+            <td><code>{{ shape_features.circularity }}</code></td>
+            <td>Ratio of area to perimeter (identifies leaf morphology changes)</td>
+          </tr>
+          <tr>
+            <td><strong>Leaf Shape</strong></td>
+            <td>Aspect Ratio</td>
+            <td><code>{{ shape_features.aspect_ratio }}</code></td>
+            <td>Width-to-height ratio of leaf bounding envelope</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Navigation Actions -->
+    <div style="display: flex; gap: 15px; margin-top: 20px;">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">
+        ← Analyze Another Leaf
+      </a>
+      <a href="{{ url_for('features_guide') }}" class="btn btn-secondary">
+        📚 Read Viva & Architecture Notes
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Plant Leaf Disease Detection Capstone Project | Department of Computer Science & Engineering
+    </footer>
+  </div>
+
+</body>
+</html>

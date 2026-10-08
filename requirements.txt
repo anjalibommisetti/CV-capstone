@@ -1,0 +1,29 @@
+# Plant Leaf Disease Detection Using Computer Vision
+# Core dependencies for laptop and Google Colab execution
+
+# Numerical & Array Computing (numpy<2 required for TensorFlow 2.16 compatibility)
+numpy>=1.23.0,<2.0.0
+
+# Deep Learning & Neural Networks
+tensorflow>=2.12.0
+
+# Computer Vision & Image Processing
+opencv-python>=4.8.0
+scikit-image>=0.21.0
+pillow>=9.5.0
+
+# Scientific Computing & Machine Learning Evaluation
+scikit-learn>=1.2.0
+scipy>=1.10.0
+
+# Visualization & Plotting
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Web Application Framework
+flask>=2.3.0
+werkzeug>=2.3.0
+
+# Utilities
+tqdm>=4.65.0
+requests>=2.28.0

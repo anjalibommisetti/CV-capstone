@@ -1,0 +1,17 @@
+=== Custom_CNN Classification Report ===
+
+                       precision    recall  f1-score   support
+
+   Apple___Apple_scab       0.25      1.00      0.40         1
+      Apple___healthy       0.00      0.00      0.00         1
+Tomato___Early_blight       0.00      0.00      0.00         1
+     Tomato___healthy       0.00      0.00      0.00         1
+
+             accuracy                           0.25         4
+            macro avg       0.06      0.25      0.10         4
+         weighted avg       0.06      0.25      0.10         4
+
+Overall Accuracy : 25.00%
+Overall Precision: 6.25%
+Overall Recall   : 25.00%
+Overall F1-Score : 10.00%

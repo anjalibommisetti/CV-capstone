@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viva & Technical Architecture Guide - AgriVision AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="logo-badge">🎓 Student Viva & Project Defense Guide</div>
+      <h1>Plant Disease Detection Project Notes</h1>
+      <p class="subtitle">Quick reference notes for external examination, viva-voce, and presentations</p>
+    </header>
+
+    <div class="card">
+      <div class="card-title">
+        <span>📖</span> Classical CV vs Deep Learning (CNN) Comparison
+      </div>
+      <pre style="background: #0f172a; color: #f1f5f9; padding: 20px; border-radius: 10px; font-family: monospace; font-size: 0.88rem; overflow-x: auto; white-space: pre-wrap;">{{ guide_text }}</pre>
+    </div>
+
+    <!-- Viva Q&A Accordion/Cards -->
+    <div class="card">
+      <div class="card-title">
+        <span>❓</span> Frequently Asked Viva Questions & Standard Answers
+      </div>
+
+      <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border-left: 4px solid #16a34a;">
+          <h4 style="color: #0f172a;">Q1: Why do we use Gaussian Blur before segmentation and classification?</h4>
+          <p style="color: #475569; font-size: 0.92rem; margin-top: 6px;">
+            <strong>Answer:</strong> Digital camera sensors introduce high-frequency noise (such as salt-and-pepper noise and ISO grain).
+            Gaussian filtering applies a 2D Gaussian bell-shaped distribution kernel to average out high-frequency variations while preserving prominent leaf edges and necrotic lesion boundaries.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border-left: 4px solid #0284c7;">
+          <h4 style="color: #0f172a;">Q2: Why use HSV color space instead of RGB for leaf segmentation?</h4>
+          <p style="color: #475569; font-size: 0.92rem; margin-top: 6px;">
+            <strong>Answer:</strong> RGB combines color and illumination into every channel, making it extremely vulnerable to shadows and uneven sunlight.
+            HSV decouples chromaticity (Hue) and color saturation (Saturation) from brightness (Value). Plant chlorophyll pigments remain consistently detectable in Hue (25–90) regardless of shadows.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border-left: 4px solid #d97706;">
+          <h4 style="color: #0f172a;">Q3: What is MobileNetV2 and why is it preferred over heavy networks like VGG16?</h4>
+          <p style="color: #475569; font-size: 0.92rem; margin-top: 6px;">
+            <strong>Answer:</strong> MobileNetV2 uses <em>Depthwise Separable Convolutions</em> and <em>Inverted Residual Blocks</em> with linear bottlenecks.
+            This drastically reduces parameter count (3.5M parameters compared to VGG16's 138M) and computation costs (FLOPs), allowing real-time inference on standard laptops and agricultural edge devices without losing accuracy.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border-left: 4px solid #7c3aed;">
+          <h4 style="color: #0f172a;">Q4: What is GLCM and what features does it extract?</h4>
+          <p style="color: #475569; font-size: 0.92rem; margin-top: 6px;">
+            <strong>Answer:</strong> The Gray-Level Co-occurrence Matrix (GLCM) tabulates how often pairs of pixels with specific values and in a specified spatial relationship occur in an image.
+            It extracts second-order statistical texture properties: Contrast (surface roughness), Homogeneity (texture uniformity), Energy (textural order), and Correlation.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border-left: 4px solid #e11d48;">
+          <h4 style="color: #0f172a;">Q5: Where do real model performance numbers appear?</h4>
+          <p style="color: #475569; font-size: 0.92rem; margin-top: 6px;">
+            <strong>Answer:</strong> Genuine metrics are generated directly upon running <code>python train.py</code>.
+            They are saved inside the <code>reports/</code> directory:
+            <br>• <code>reports/classification_report_mobilenetv2.txt</code> (Accuracy, Precision, Recall, F1)
+            <br>• <code>reports/confusion_matrix_mobilenetv2.png</code> (Per-class true vs predicted matrix)
+            <br>• <code>reports/training_curves_mobilenet.png</code> (Accuracy and Loss plots over epochs)
+            <br>• <code>reports/model_comparison.json</code> (Direct Custom CNN vs MobileNetV2 comparison)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">
+        ← Return to Web Dashboard
+      </a>
+    </div>
+
+    <footer>
+      Plant Leaf Disease Detection Capstone Project | Academic Viva Reference
+    </footer>
+  </div>
+
+</body>
+</html>

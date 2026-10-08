@@ -1,0 +1,17 @@
+=== MobileNetV2 Classification Report ===
+
+                       precision    recall  f1-score   support
+
+   Apple___Apple_scab       1.00      1.00      1.00         1
+      Apple___healthy       0.00      0.00      0.00         1
+Tomato___Early_blight       1.00      1.00      1.00         1
+     Tomato___healthy       0.50      1.00      0.67         1
+
+             accuracy                           0.75         4
+            macro avg       0.62      0.75      0.67         4
+         weighted avg       0.62      0.75      0.67         4
+
+Overall Accuracy : 75.00%
+Overall Precision: 62.50%
+Overall Recall   : 75.00%
+Overall F1-Score : 66.67%

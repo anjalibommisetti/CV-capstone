@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgriVision AI - Plant Leaf Disease Detection & Treatment</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo-badge">🌿 Intelligent Computer Vision For Agriculture</div>
+      <h1>Plant Leaf Disease Detection & Diagnosis</h1>
+      <p class="subtitle">Powered by OpenCV Segmentation, MobileNetV2 Transfer Learning & Agronomic Treatment Advisory</p>
+      <div style="margin-top: 10px; font-size: 0.85rem; color: #475569;">
+        <strong>System Status:</strong> <span style="color: #16a34a;">● {{ model_status }}</span>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div style="background: #fee2e2; border: 1px solid #f87171; color: #991b1b; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
+          {% for msg in messages %}
+            <p>{{ msg }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Upload & Camera Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>📸</span> Upload or Capture Leaf Image
+      </div>
+
+      <!-- File Upload Form -->
+      <form id="upload-form" action="{{ url_for('predict') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="sample_choice" id="sample_choice" value="">
+        <input type="hidden" name="camera_image" id="camera_image" value="">
+
+        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click();">
+          <div class="upload-icon">🍃</div>
+          <h3 style="margin-bottom: 6px;">Click or Drag & Drop Leaf Image Here</h3>
+          <p style="color: #64748b; font-size: 0.95rem;">Supports JPG, JPEG, PNG, WEBP (Min 32x32 px)</p>
+          <div id="file-name-preview" style="margin-top: 12px; font-weight: 600; color: #15803d;"></div>
+          <input type="file" id="file-input" name="file" class="file-input" accept="image/*" onchange="previewFile(this)">
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary" id="analyze-btn">
+            🔍 Analyze Leaf Now
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="toggleWebcam()">
+            📷 Use Live Webcam
+          </button>
+          <a href="{{ url_for('features_guide') }}" class="btn btn-secondary" style="margin-left: auto;">
+            📚 Viva & Feature Guide
+          </a>
+        </div>
+      </form>
+
+      <!-- Live Webcam Area -->
+      <div id="webcam-box" class="webcam-container">
+        <video id="camera-video" autoplay playsinline></video>
+        <div style="margin-top: 12px; display: flex; justify-content: center; gap: 10px;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="captureWebcamFrame()">
+            ⚡ Capture & Analyze Snapshot
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="stopWebcam()">
+            ✖ Close Camera
+          </button>
+        </div>
+        <canvas id="camera-canvas" style="display: none;"></canvas>
+      </div>
+    </div>
+
+    <!-- Quick Demo Test Leaves Card -->
+    {% if samples %}
+    <div class="card">
+      <div class="card-title">
+        <span>⚡</span> Quick Test with Sample Leaves (One-Click)
+      </div>
+      <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
+        Click any sample below to run immediate diagnosis without needing to search for an external image:
+      </p>
+
+      <div class="sample-grid">
+        {% for s in samples %}
+        <div class="sample-card" onclick="runSampleTest('{{ s }}')">
+          <img src="{{ url_for('static', filename='samples/' + s) }}" alt="{{ s }}" class="sample-img">
+          <div style="font-weight: 600; font-size: 0.88rem; color: #334155;">
+            {{ s.replace('.jpg', '').replace('_', ' ').title() }}
+          </div>
+          <div style="font-size: 0.78rem; color: #15803d; margin-top: 4px;">Click to Diagnose →</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Architecture & Modules Explanation Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>⚙️</span> Computer Vision Architecture Pipeline
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 10px;">
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 1: Preprocessing</div>
+          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
+            Input format validation, Gaussian blur noise filtering, resizing to standard 224x224, pixel normalization.
+          </p>
+        </div>
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 2: Segmentation</div>
+          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
+            HSV color thresholding & K-Means background removal. Necrotic lesion highlight and GLCM texture extraction.
+          </p>
+        </div>
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 3: Classification</div>
+          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
+            MobileNetV2 Transfer Learning with ImageNet weights compared against a custom baseline CNN.
+          </p>
+        </div>
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 4: Advisory</div>
+          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
+            Structured decision support providing chemical/organic treatments and proactive cultural prevention practices.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Plant Leaf Disease Detection Capstone Project | Academic & Research Use
+    </footer>
+  </div>
+
+  <script>
+    // Preview selected file name
+    function previewFile(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('file-name-preview').innerText = "Selected: " + input.files[0].name;
+      }
+    }
+
+    // Drag and Drop
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#15803d';
+        dropZone.style.backgroundColor = '#f0fdf4';
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#86efac';
+        dropZone.style.backgroundColor = '#fdfdfd';
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        previewFile(fileInput);
+      }
+    });
+
+    // Sample Click Test
+    function runSampleTest(sampleFilename) {
+      document.getElementById('sample_choice').value = sampleFilename;
+      document.getElementById('upload-form').submit();
+    }
+
+    // Webcam integration
+    let videoStream = null;
+    function toggleWebcam() {
+      const box = document.getElementById('webcam-box');
+      if (box.style.display === 'block') {
+        stopWebcam();
+      } else {
+        startWebcam();
+      }
+    }
+
+    function startWebcam() {
+      const box = document.getElementById('webcam-box');
+      const video = document.getElementById('camera-video');
+      navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 } })
+        .then(stream => {
+          videoStream = stream;
+          video.srcObject = stream;
+          box.style.display = 'block';
+        })
+        .catch(err => {
+          alert('Could not access webcam: ' + err.message);
+        });
+    }
+
+    function stopWebcam() {
+      const box = document.getElementById('webcam-box');
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      box.style.display = 'none';
+    }
+
+    function captureWebcamFrame() {
+      const video = document.getElementById('camera-video');
+      const canvas = document.getElementById('camera-canvas');
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 320;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      
+      document.getElementById('camera_image').value = dataUrl;
+      stopWebcam();
+      document.getElementById('upload-form').submit();
+    }
+  </script>
+</body>
+</html>
