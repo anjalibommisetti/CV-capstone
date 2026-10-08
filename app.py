@@ -241,5 +241,6 @@ def features_guide():
 if __name__ == "__main__":
     # Host on 0.0.0.0, port 5000 for local browser access
     print("[INFO] Starting Plant Leaf Disease Detection Web Application...")
-    print("[INFO] Open http://127.0.0.1:5000 in your web browser!")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
+
