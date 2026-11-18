@@ -372,3 +372,18 @@ footer {
   margin-top: 40px;
   padding-bottom: 20px;
 }
+
+/* Pathology Metric Values */
+.metric-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.text-healthy {
+  color: #16a34a;
+}
+
+.text-diseased {
+  color: #dc2626;
+}
+

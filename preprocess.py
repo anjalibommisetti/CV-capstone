@@ -229,6 +229,170 @@ def sample_augmentations_opencv(img_rgb: np.ndarray) -> dict:
     }
 
 
+def verify_plant_leaf(img_input, target_size: tuple = TARGET_SIZE) -> dict:
+    """
+    Validates whether an input image contains legitimate botanical leaf tissue
+    or represents an Out-of-Distribution (OOD) non-plant subject such as a human face,
+    selfie, animal, or inanimate object.
+    
+    Verification stages:
+    1. Human Face Detection (Haar Feature-based Cascades confirmed with chromatic analysis):
+       Scans for frontal and profile faces using OpenCV Haar cascades and verifies that
+       candidate regions match human facial skin tones rather than leaf veining.
+    2. Skin Tone Chrominance (YCrCb):
+       Quantifies human skin pixel proportions in the YCrCb color space.
+    3. Botanical Foliage Quantification (HSV):
+       Measures green chlorophyll pigment (H: 25-95) and plant tissue coverage.
+       
+    Returns:
+        dict with keys:
+        - 'is_valid': bool (True if valid plant leaf, False if rejected)
+        - 'reason': str (Display diagnostic label or rejection title)
+        - 'rejection_code': str (Internal status identifier)
+        - 'crop': str ("Non-Botanical Object" or "Plant")
+        - 'description': str (Detailed explanation for user and viva report)
+        - 'treatment_note': str (Agronomic action message)
+        - 'advisory_note': str (Cultural practice or image capture guidance)
+        - 'annotated_rgb': np.ndarray (RGB image with visual bounding overlay if face detected)
+    """
+    img_rgb = load_image_rgb(img_input)
+    h, w = img_rgb.shape[:2]
+    total_px = h * w
+    
+    # Scale image to max dimension 600px for robust, rapid Haar feature evaluation
+    max_dim = max(h, w)
+    scale = 600.0 / max_dim if max_dim > 600 else 1.0
+    proc_w = int(w * scale)
+    proc_h = int(h * scale)
+    scaled_rgb = cv2.resize(
+        img_rgb, 
+        (proc_w, proc_h), 
+        interpolation=cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LINEAR
+    )
+    gray = cv2.cvtColor(scaled_rgb, cv2.COLOR_RGB2GRAY)
+    gray_eq = cv2.equalizeHist(gray)
+    
+    # 1. Haar Cascades for Human Face Detection
+    cascades = [
+        cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml"),
+        cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml"),
+        cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_profileface.xml")
+    ]
+    
+    confirmed_faces = []
+    for casc in cascades:
+        if casc.empty():
+            continue
+        faces = casc.detectMultiScale(gray_eq, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+        for (fx, fy, fw, fh) in faces:
+            crop_rgb = scaled_rgb[fy:fy+fh, fx:fx+fw]
+            crop_area = max(fw * fh, 1)
+            
+            # Check chlorophyll foliage ratio in candidate box
+            crop_hsv = cv2.cvtColor(crop_rgb, cv2.COLOR_RGB2HSV)
+            crop_green_mask = cv2.inRange(crop_hsv, np.array([25, 30, 20]), np.array([95, 255, 255]))
+            crop_green_ratio = np.count_nonzero(crop_green_mask) / crop_area
+            
+            # Check skin tone chrominance in YCrCb (Cr: 133-173, Cb: 77-127)
+            crop_ycrcb = cv2.cvtColor(crop_rgb, cv2.COLOR_RGB2YCrCb)
+            crop_skin_mask = cv2.inRange(crop_ycrcb, np.array([0, 133, 77]), np.array([255, 173, 127]))
+            crop_skin_ratio = np.count_nonzero(crop_skin_mask) / crop_area
+            
+            # Confirm human face: low foliage, significant skin tone
+            if crop_green_ratio < 0.15 and crop_skin_ratio >= 0.15:
+                # Map coordinates to target_size
+                tx = int((fx / proc_w) * target_size[0])
+                ty = int((fy / proc_h) * target_size[1])
+                tw = int((fw / proc_w) * target_size[0])
+                th = int((fh / proc_h) * target_size[1])
+                confirmed_faces.append((tx, ty, tw, th))
+                
+        if confirmed_faces:
+            break
+            
+    resized_rgb = resize_image(img_rgb, target_size=target_size)
+    
+    # If confirmed face is detected, highlight it with a red bounding box
+    if confirmed_faces:
+        annotated_rgb = resized_rgb.copy()
+        for (tx, ty, tw, th) in confirmed_faces:
+            cv2.rectangle(annotated_rgb, (tx, ty), (tx + tw, ty + th), (239, 68, 68), 2)
+            # Label banner
+            label_text = "Human Face (Non-Plant)"
+            cv2.putText(
+                annotated_rgb, 
+                label_text, 
+                (tx, max(18, ty - 6)),
+                cv2.FONT_HERSHEY_SIMPLEX, 
+                0.42, 
+                (239, 68, 68), 
+                1, 
+                cv2.LINE_AA
+            )
+            
+        return {
+            "is_valid": False,
+            "reason": "Human Face Detected",
+            "rejection_code": "REJECTED_HUMAN_FACE",
+            "crop": "Non-Botanical (Human Subject)",
+            "description": "A human face was detected in the uploaded image. AgriVision AI specializes strictly in foliar plant pathologies and rejected this non-botanical subject.",
+            "treatment_note": "No agricultural treatment applicable. Input rejected as a non-plant human subject.",
+            "advisory_note": "Please upload or capture a clear photo of an agricultural plant leaf (e.g. Tomato, Potato, Apple, Corn, etc.).",
+            "annotated_rgb": annotated_rgb
+        }
+        
+    # 2. Global Skin Tone Evaluation (Selfies, hands, arms without full face)
+    ycrcb = cv2.cvtColor(resized_rgb, cv2.COLOR_RGB2YCrCb)
+    skin_mask = cv2.inRange(ycrcb, np.array([0, 133, 77]), np.array([255, 173, 127]))
+    skin_ratio = np.count_nonzero(skin_mask) / (target_size[0] * target_size[1])
+    
+    # 3. Botanical Foliage Evaluation (Green chlorophyll and yellow-brown tissue)
+    hsv = cv2.cvtColor(resized_rgb, cv2.COLOR_RGB2HSV)
+    green_mask = cv2.inRange(hsv, np.array([25, 25, 20]), np.array([95, 255, 255]))
+    green_ratio = np.count_nonzero(green_mask) / (target_size[0] * target_size[1])
+    
+    if skin_ratio > 0.25 and green_ratio < 0.05:
+        return {
+            "is_valid": False,
+            "reason": "Human Subject / Skin Detected",
+            "rejection_code": "REJECTED_HUMAN_SUBJECT",
+            "crop": "Non-Botanical (Human Subject)",
+            "description": "Human skin tones predominate in the image with no recognizable plant foliage.",
+            "treatment_note": "No agricultural treatment applicable. Input rejected as human subject.",
+            "advisory_note": "Please photograph a plant leaf directly instead of human subjects or skin.",
+            "annotated_rgb": resized_rgb
+        }
+        
+    yellow_brown_mask = cv2.inRange(hsv, np.array([10, 30, 20]), np.array([25, 255, 220]))
+    foliage_mask = cv2.bitwise_or(green_mask, yellow_brown_mask)
+    foliage_ratio = np.count_nonzero(foliage_mask) / (target_size[0] * target_size[1])
+    
+    # 4. Inanimate Object / Non-Plant Evaluation (Cars, furniture, blank walls, desk)
+    if green_ratio < 0.04 and foliage_ratio < 0.05:
+        return {
+            "is_valid": False,
+            "reason": "No Plant Foliage Detected",
+            "rejection_code": "REJECTED_NO_PLANT_FOLIAGE",
+            "crop": "Non-Plant Object",
+            "description": f"Only {round(foliage_ratio * 100, 1)}% botanical foliage color was identified. The image appears to contain an inanimate object or background.",
+            "treatment_note": "No plant pathology detected. The image does not contain recognizable leaf blade tissue.",
+            "advisory_note": "Ensure your camera is pointed directly at an agricultural crop leaf with adequate lighting and a simple background.",
+            "annotated_rgb": resized_rgb
+        }
+        
+    # Valid plant leaf
+    return {
+        "is_valid": True,
+        "reason": "Valid Plant Leaf",
+        "rejection_code": "ACCEPTED_PLANT_LEAF",
+        "crop": "Plant",
+        "description": "Image verified as containing legitimate botanical leaf tissue.",
+        "treatment_note": "",
+        "advisory_note": "",
+        "annotated_rgb": resized_rgb
+    }
+
+
 if __name__ == "__main__":
     print("[Module 1: Image Acquisition & Preprocessing Test]")
     # Create a synthetic test leaf patch to verify pipeline

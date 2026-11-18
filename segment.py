@@ -15,6 +15,7 @@ Features:
    automatically learn these features end-to-end.
 """
 
+from typing import Any
 import cv2
 import numpy as np
 from skimage.feature import graycomatrix, graycoprops
@@ -50,11 +51,15 @@ def segment_leaf_hsv(img_rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     raw_mask = cv2.bitwise_or(mask_green, mask_brown)
     
     # If the image background has minimal saturation (white/gray/black lab paper),
-    # Otsu thresholding on saturation is also an effective complement:
+    # Otsu thresholding on saturation is also an effective complement when foliage is present:
     s_channel = hsv[:, :, 1]
     _, otsu_sat_mask = cv2.threshold(s_channel, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
-    combined_mask = cv2.bitwise_or(raw_mask, otsu_sat_mask)
+    foliage_pixel_count = np.count_nonzero(raw_mask)
+    if foliage_pixel_count > (img_rgb.shape[0] * img_rgb.shape[1] * 0.04):
+        combined_mask = cv2.bitwise_or(raw_mask, otsu_sat_mask)
+    else:
+        combined_mask = raw_mask
     
     # Morphological cleaning: Close small holes inside the leaf, remove small background specks
     kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
@@ -95,11 +100,12 @@ def segment_leaf_kmeans(img_rgb: np.ndarray, k: int = 3) -> tuple[np.ndarray, np
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
     
     # Run K-means clustering
+    best_labels: Any = None
     _, labels, centers = cv2.kmeans(
-        pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS
+        pixel_values, k, best_labels, criteria, 10, cv2.KMEANS_RANDOM_CENTERS
     )
     
-    centers = np.uint8(centers)
+    centers = centers.astype(np.uint8)
     segmented_data = centers[labels.flatten()]
     segmented_image = segmented_data.reshape(img_rgb.shape)
     
@@ -118,7 +124,7 @@ def segment_leaf_kmeans(img_rgb: np.ndarray, k: int = 3) -> tuple[np.ndarray, np
     return segmented_rgb, leaf_mask
 
 
-def highlight_diseased_regions(img_rgb: np.ndarray, leaf_mask: np.ndarray = None) -> tuple[np.ndarray, np.ndarray, dict]:
+def highlight_diseased_regions(img_rgb: np.ndarray, leaf_mask: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
     """
     Identifies and highlights necrotic/chlorotic diseased spots within the leaf boundary.
     
@@ -190,7 +196,7 @@ def highlight_diseased_regions(img_rgb: np.ndarray, leaf_mask: np.ndarray = None
     return highlighted_rgb, disease_mask, disease_stats
 
 
-def extract_color_features(img_rgb: np.ndarray, mask: np.ndarray = None) -> dict:
+def extract_color_features(img_rgb: np.ndarray, mask: np.ndarray | None = None) -> dict:
     """
     Extracts statistical color moments (Mean, Standard Deviation, Skewness)
     and histogram features for R, G, B and H, S, V channels.
@@ -239,7 +245,7 @@ def extract_color_features(img_rgb: np.ndarray, mask: np.ndarray = None) -> dict
     }
 
 
-def extract_glcm_texture_features(img_rgb: np.ndarray, mask: np.ndarray = None) -> dict:
+def extract_glcm_texture_features(img_rgb: np.ndarray, mask: np.ndarray | None = None) -> dict:
     """
     Extracts second-order statistical texture features using the
     Gray-Level Co-occurrence Matrix (GLCM).

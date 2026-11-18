@@ -21,7 +21,7 @@ import cv2
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import tensorflow as tf
 
-from preprocess import preprocess_pipeline, validate_image_file, load_image_rgb
+from preprocess import preprocess_pipeline, validate_image_file, load_image_rgb, verify_plant_leaf
 from segment import (
     segment_leaf_hsv, 
     highlight_diseased_regions, 
@@ -118,7 +118,11 @@ def predict():
         sample_path = os.path.join("static", "samples", sample_choice)
         if os.path.exists(sample_path):
             img_bgr = cv2.imread(sample_path)
-            cv2.imwrite(raw_saved_path, img_bgr)
+            if img_bgr is not None:
+                cv2.imwrite(raw_saved_path, img_bgr)
+            else:
+                flash("Failed to read sample image.")
+                return redirect(url_for("index"))
         else:
             flash("Sample image not found.")
             return redirect(url_for("index"))
@@ -152,59 +156,100 @@ def predict():
     preprocessed_path = os.path.join(UPLOAD_FOLDER, preprocessed_filename)
     cv2.imwrite(preprocessed_path, cv2.cvtColor(resized_rgb, cv2.COLOR_RGB2BGR))
 
-    # ---------------- MODULE 2: Segmentation & Spot Highlighting ----------------
-    segmented_rgb, leaf_mask = segment_leaf_hsv(resized_rgb)
+    # ---------------- Out-of-Distribution & Leaf Verification (Face / Non-Plant Interception) ----------------
+    leaf_check = verify_plant_leaf(raw_saved_path, target_size=(224, 224))
+    is_valid_leaf = leaf_check["is_valid"]
+
     segmented_filename = f"segmented_{timestamp}.jpg"
     segmented_path = os.path.join(UPLOAD_FOLDER, segmented_filename)
-    cv2.imwrite(segmented_path, cv2.cvtColor(segmented_rgb, cv2.COLOR_RGB2BGR))
-
-    highlighted_rgb, disease_mask, disease_stats = highlight_diseased_regions(resized_rgb, leaf_mask)
     highlighted_filename = f"highlighted_{timestamp}.jpg"
     highlighted_path = os.path.join(UPLOAD_FOLDER, highlighted_filename)
-    cv2.imwrite(highlighted_path, cv2.cvtColor(highlighted_rgb, cv2.COLOR_RGB2BGR))
 
-    # Feature Extraction (Classical CV)
-    glcm_features = extract_glcm_texture_features(resized_rgb, leaf_mask)
-    shape_features = extract_shape_features(leaf_mask)
-
-    # ---------------- MODULE 3: Model Inference ----------------
-    pred_class_name = None
-    confidence_pct = 0.0
-    
-    if MODEL is not None:
-        # Prepare input tensor shape (1, 224, 224, 3)
-        input_tensor = np.expand_dims(resized_rgb, axis=0)
-        # Note: MobileNetV2 model built in train.py incorporates internal preprocessing
-        predictions = MODEL.predict(input_tensor, verbose=0)[0]
-        top_idx = int(np.argmax(predictions))
-        confidence_pct = float(predictions[top_idx]) * 100.0
+    if not is_valid_leaf:
+        # Non-plant input (Face, Skin, Inanimate Object) detected!
+        # Halt classification to avoid false diagnosis and set confidence to 0.0%
+        crop_name = leaf_check["crop"]
+        disease_name = leaf_check["reason"]
+        confidence_pct = 0.0
+        is_healthy = False
+        treatment = leaf_check["treatment_note"]
+        prevention = leaf_check["advisory_note"]
+        description = leaf_check["description"]
+        pred_class_name = leaf_check["rejection_code"]
         
-        if top_idx < len(CLASS_NAMES):
-            pred_class_name = CLASS_NAMES[top_idx]
-        else:
-            pred_class_name = PLANT_CLASSES[0]
-    else:
-        # Demonstration Mode (when model has not been trained yet)
-        if disease_stats["infection_percentage"] > 2.0 or disease_stats["spot_count"] > 0:
-            pred_class_name = "Tomato___Early_blight"
-            confidence_pct = 94.6
-        else:
-            pred_class_name = "Tomato___healthy"
-            confidence_pct = 97.8
-
-    # ---------------- MODULE 4: Recommendation Lookup ----------------
-    info = get_disease_info(pred_class_name)
-    crop_name = info["crop"]
-    disease_name = info["disease"]
-    is_healthy = info["is_healthy"]
-    
-    if is_healthy:
-        treatment = "Healthy Leaf, no treatment needed."
-    else:
-        treatment = info["treatment"]
+        disease_stats = {
+            "spot_count": 0,
+            "infection_percentage": 0.0,
+            "total_leaf_area_px": 0,
+            "infected_area_px": 0
+        }
+        glcm_features = {
+            "contrast": "0.00",
+            "dissimilarity": "0.00",
+            "homogeneity": "0.00",
+            "energy": "0.00",
+            "correlation": "0.00",
+            "asm": "0.00"
+        }
+        shape_features = {
+            "area": 0,
+            "perimeter": "0.00",
+            "aspect_ratio": "0.00",
+            "circularity": "0.00"
+        }
         
-    prevention = info["prevention"]
-    description = info["description"]
+        # Save annotated image showing the detected face bounding box or localization overlay
+        cv2.imwrite(segmented_path, cv2.cvtColor(leaf_check["annotated_rgb"], cv2.COLOR_RGB2BGR))
+        cv2.imwrite(highlighted_path, cv2.cvtColor(leaf_check["annotated_rgb"], cv2.COLOR_RGB2BGR))
+    else:
+        # ---------------- MODULE 2: Segmentation & Spot Highlighting ----------------
+        segmented_rgb, leaf_mask = segment_leaf_hsv(resized_rgb)
+        cv2.imwrite(segmented_path, cv2.cvtColor(segmented_rgb, cv2.COLOR_RGB2BGR))
+
+        highlighted_rgb, disease_mask, disease_stats = highlight_diseased_regions(resized_rgb, leaf_mask)
+        cv2.imwrite(highlighted_path, cv2.cvtColor(highlighted_rgb, cv2.COLOR_RGB2BGR))
+
+        # Feature Extraction (Classical CV)
+        glcm_features = extract_glcm_texture_features(resized_rgb, leaf_mask)
+        shape_features = extract_shape_features(leaf_mask)
+
+        # ---------------- MODULE 3: Model Inference ----------------
+        pred_class_name = None
+        confidence_pct = 0.0
+        
+        if MODEL is not None:
+            # Prepare input tensor shape (1, 224, 224, 3)
+            input_tensor = np.expand_dims(resized_rgb, axis=0)
+            predictions = MODEL.predict(input_tensor, verbose=0)[0]
+            top_idx = int(np.argmax(predictions))
+            confidence_pct = float(predictions[top_idx]) * 100.0
+            
+            if top_idx < len(CLASS_NAMES):
+                pred_class_name = CLASS_NAMES[top_idx]
+            else:
+                pred_class_name = PLANT_CLASSES[0]
+        else:
+            # Demonstration Mode (when model has not been trained yet)
+            if disease_stats["infection_percentage"] > 2.0 or disease_stats["spot_count"] > 0:
+                pred_class_name = "Tomato___Early_blight"
+                confidence_pct = 94.6
+            else:
+                pred_class_name = "Tomato___healthy"
+                confidence_pct = 97.8
+
+        # ---------------- MODULE 4: Recommendation Lookup ----------------
+        info = get_disease_info(pred_class_name)
+        crop_name = info["crop"]
+        disease_name = info["disease"]
+        is_healthy = info["is_healthy"]
+        
+        if is_healthy:
+            treatment = "Healthy Leaf, no treatment needed."
+        else:
+            treatment = info["treatment"]
+            
+        prevention = info["prevention"]
+        description = info["description"]
 
     # Image URLs for Web Template
     image_urls = {
@@ -221,6 +266,7 @@ def predict():
         disease_name=disease_name,
         confidence=round(confidence_pct, 1),
         is_healthy=is_healthy,
+        is_valid_leaf=is_valid_leaf,
         treatment=treatment,
         prevention=prevention,
         description=description,

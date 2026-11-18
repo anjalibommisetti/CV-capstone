@@ -16,6 +16,21 @@
       <p class="subtitle">Complete visual inspection pipeline and agronomic management advice</p>
     </header>
 
+    {% if not is_valid_leaf %}
+    <!-- Out-of-Distribution / Face Rejection Banner -->
+    <div style="background: #fff1f2; border: 2px solid #f43f5e; border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.1);">
+      <div style="display: flex; align-items: flex-start; gap: 16px;">
+        <span style="font-size: 2.2rem; line-height: 1;">🚫</span>
+        <div>
+          <h3 style="margin: 0 0 6px 0; color: #9f1239; font-size: 1.25rem;">Non-Plant Input Detected: {{ disease_name }}</h3>
+          <p style="margin: 0; color: #be123c; font-size: 0.95rem; line-height: 1.5;">
+            {{ description }} Diagnostic confidence has been locked to <strong>0.0%</strong> to prevent false disease attribution.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Visual Inspection Grid (Module 1 & 2 Output) -->
     <div class="card">
       <div class="card-title">
@@ -41,14 +56,14 @@
         <div class="vision-card">
           <h4>3. Segmented Leaf</h4>
           <img src="{{ image_urls.segmented }}" alt="Segmented Leaf" class="vision-preview">
-          <div class="vision-caption">HSV Color-Space Isolation</div>
+          <div class="vision-caption">{% if not is_valid_leaf %}Face / Object Localization{% else %}HSV Color-Space Isolation{% endif %}</div>
         </div>
 
         <!-- 4. Highlighted Disease -->
         <div class="vision-card">
           <h4>4. Diseased Spots Highlighted</h4>
           <img src="{{ image_urls.highlighted }}" alt="Highlighted Lesions" class="vision-preview">
-          <div class="vision-caption">Necrotic Lesion Overlay</div>
+          <div class="vision-caption">{% if not is_valid_leaf %}Zero Foliage Lesions{% else %}Necrotic Lesion Overlay{% endif %}</div>
         </div>
       </div>
     </div>
@@ -57,23 +72,25 @@
     <div class="card">
       <div class="diag-header">
         <div>
-          <div class="diag-crop">{{ crop_name }} Leaf Analysis</div>
+          <div class="diag-crop">{{ crop_name }} Analysis</div>
           <div class="diag-title">{{ disease_name }}</div>
           <p style="color: #64748b; font-size: 0.95rem; margin-top: 4px;">{{ description }}</p>
         </div>
 
         <div>
-          {% if is_healthy %}
+          {% if not is_valid_leaf %}
+            <span class="badge" style="background: #fee2e2; color: #991b1b; border: 1px solid #f87171; font-weight: 700;">🚫 REJECTED: NOT A PLANT</span>
+          {% elif is_healthy %}
             <span class="badge badge-healthy">✓ HEALTHY LEAF</span>
           {% else %}
             <span class="badge badge-diseased">⚠ INFECTED LEAF</span>
           {% endif %}
           <div style="margin-top: 10px; text-align: right;">
-            <div style="font-size: 1.1rem; font-weight: 700; color: #1e293b;">
-              Confidence: {{ confidence }}%
+            <div style="font-size: 1.1rem; font-weight: 700; color: {% if not is_valid_leaf %}#dc2626{% else %}#1e293b{% endif %};">
+              Confidence: {{ confidence }}% {% if not is_valid_leaf %}<span style="font-size: 0.82rem; font-weight: 600; color: #dc2626;">(0% Confidence)</span>{% endif %}
             </div>
             <div class="progress-bar-container">
-              <div class="progress-bar-fill" style="width: {{ confidence }}%;"></div>
+              <div class="progress-bar-fill" id="confidence-bar" style="{% if not is_valid_leaf %}background: #ef4444; width: 0%;{% endif %}"></div>
             </div>
           </div>
         </div>
@@ -83,7 +100,7 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
           <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Infection Extent</div>
-          <div style="font-size: 1.3rem; font-weight: 700; color: {% if is_healthy %}#16a34a{% else %}#dc2626{% endif %};">
+          <div class="metric-value {% if not is_valid_leaf %}text-diseased{% elif is_healthy %}text-healthy{% else %}text-diseased{% endif %}">
             {{ disease_stats.infection_percentage }}%
           </div>
         </div>
@@ -103,8 +120,8 @@
         </div>
 
         <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-          <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Raw Dataset Class</div>
-          <div style="font-size: 0.85rem; font-weight: 600; color: #475569; word-break: break-all;">
+          <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Validation Status</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: {% if not is_valid_leaf %}#dc2626{% else %}#15803d{% endif %}; word-break: break-all;">
             {{ raw_class }}
           </div>
         </div>
@@ -200,5 +217,16 @@
     </footer>
   </div>
 
+  <script>
+    const bar = document.getElementById('confidence-bar');
+    if (bar) {
+      {% if not is_valid_leaf %}
+        bar.style.width = '0%';
+        bar.style.backgroundColor = '#ef4444';
+      {% else %}
+        bar.style.width = '{{ confidence }}%';
+      {% endif %}
+    }
+  </script>
 </body>
 </html>

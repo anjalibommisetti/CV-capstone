@@ -25,7 +25,7 @@ import seaborn as sns
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.callbacks import Callback, EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 
 # Constants
@@ -310,14 +310,14 @@ def train_pipeline(dataset_dir: str = "dataset", epochs: int = DEFAULT_EPOCHS):
     os.makedirs(REPORTS_DIR, exist_ok=True)
     
     # Callbacks
-    callbacks_custom = [
+    callbacks_custom: list[Callback] = [
         EarlyStopping(monitor="val_loss", patience=4, restore_best_weights=True, verbose=1),
         ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=2, min_lr=1e-5, verbose=1),
         ModelCheckpoint(os.path.join(SAVED_MODELS_DIR, "custom_cnn_model.keras"), 
                         monitor="val_accuracy", save_best_only=True, verbose=1)
     ]
     
-    callbacks_mobilenet = [
+    callbacks_mobilenet: list[Callback] = [
         EarlyStopping(monitor="val_loss", patience=4, restore_best_weights=True, verbose=1),
         ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=2, min_lr=1e-6, verbose=1),
         ModelCheckpoint(os.path.join(SAVED_MODELS_DIR, "mobilenet_plant_model.keras"), 
