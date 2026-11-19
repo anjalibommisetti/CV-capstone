@@ -367,7 +367,53 @@ def verify_plant_leaf(img_input, target_size: tuple = TARGET_SIZE) -> dict:
     foliage_mask = cv2.bitwise_or(green_mask, yellow_brown_mask)
     foliage_ratio = np.count_nonzero(foliage_mask) / (target_size[0] * target_size[1])
     
-    # 4. Inanimate Object / Non-Plant Evaluation (Cars, furniture, blank walls, desk)
+    # 4. Digital Graphic / Chart / Vector Art Detection (Pie charts, diagrams, drawings)
+    # Biological leaves exhibit organic cellular textures, gradients, and fine veins.
+    # Digital graphics, vector illustrations, and pie charts contain flat uniform color fills.
+    white_px_ratio = np.count_nonzero(
+        (img_rgb[:, :, 0] > 246) & (img_rgb[:, :, 1] > 246) & (img_rgb[:, :, 2] > 246)
+    ) / total_px
+
+    if green_ratio > 0.02:
+        kernel = np.ones((7, 7), np.uint8)
+        inner_g = cv2.erode(green_mask, kernel)
+        inner_g_count = np.count_nonzero(inner_g)
+        
+        if inner_g_count > 30:
+            gray_proc = cv2.cvtColor(resized_rgb, cv2.COLOR_RGB2GRAY)
+            canny_edges = cv2.Canny(gray_proc, 40, 120)
+            inner_edge_ratio = np.count_nonzero((canny_edges > 0) & (inner_g > 0)) / inner_g_count
+            g_pixels = resized_rgb[green_mask > 0]
+            g_std = float(np.mean(np.std(g_pixels, axis=0)))
+            
+            # Real leaf foliage has high texture variance (g_std >= 18) and internal veins (edge_ratio >= 0.035).
+            # Diagrams / pie charts have flat vector fills (edge_ratio < 0.025) or sit on pure digital white backgrounds.
+            is_graphic = (inner_edge_ratio < 0.022) or (white_px_ratio > 0.55 and green_ratio < 0.25)
+            
+            if is_graphic:
+                annotated_rgb = resized_rgb.copy()
+                cv2.putText(
+                    annotated_rgb, 
+                    "Non-Botanical Graphic / Chart", 
+                    (10, 24),
+                    cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.5, 
+                    (239, 68, 68), 
+                    1, 
+                    cv2.LINE_AA
+                )
+                return {
+                    "is_valid": False,
+                    "reason": "Digital Graphic / Diagram Detected",
+                    "rejection_code": "REJECTED_DIGITAL_GRAPHIC",
+                    "crop": "Non-Botanical Graphic",
+                    "description": "The uploaded image was identified as a digital graphic, diagram, or chart rather than a photograph of a plant leaf. It lacks organic cellular textures and biological leaf veining.",
+                    "treatment_note": "No plant pathology detected. The input is an artificial graphic or diagram.",
+                    "advisory_note": "Please upload a natural camera photograph of a real plant leaf with visible veining and natural lighting.",
+                    "annotated_rgb": annotated_rgb
+                }
+
+    # 5. Inanimate Object / Non-Plant Evaluation (Cars, furniture, blank walls, desk)
     if green_ratio < 0.04 and foliage_ratio < 0.05:
         return {
             "is_valid": False,
