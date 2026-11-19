@@ -5,6 +5,152 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AgriVision AI - Plant Leaf Disease Detection & Treatment</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    /* Modern Stats & Interactive Pipeline */
+    .stats-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 25px;
+    }
+    .stat-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 16px 18px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px -4px rgba(22, 101, 52, 0.12);
+      border-color: #86efac;
+    }
+    .stat-icon {
+      font-size: 1.8rem;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0fdf4;
+      flex-shrink: 0;
+    }
+    .stat-num {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #14532d;
+      line-height: 1.2;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    /* Workflow Cards */
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .workflow-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .workflow-card:hover {
+      border-color: #86efac;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 22px -6px rgba(22, 101, 52, 0.12);
+    }
+    .workflow-step {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #15803d;
+      background: #dcfce7;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+    .workflow-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .workflow-card p {
+      font-size: 0.86rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .workflow-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+    .workflow-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    /* Crops Explorer */
+    .crops-pill-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .crop-pill-btn {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .crop-pill-btn:hover, .crop-pill-btn.active {
+      background: #15803d;
+      color: #ffffff;
+      border-color: #15803d;
+      transform: scale(1.04);
+    }
+    .crop-disease-box {
+      margin-top: 14px;
+      padding: 14px 18px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #14532d;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
 
@@ -100,36 +246,131 @@
     </div>
     {% endif %}
 
-    <!-- Architecture & Modules Explanation Card -->
+    <!-- Live Capstone Capability & Stats Banner -->
+    <div class="stats-banner">
+      <div class="stat-card">
+        <div class="stat-icon">🌿</div>
+        <div>
+          <div class="stat-num">14 Crops</div>
+          <div class="stat-label">Species Covered</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🦠</div>
+        <div>
+          <div class="stat-num">38 Classes</div>
+          <div class="stat-label">Foliar Pathologies</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🛡️</div>
+        <div>
+          <div class="stat-num">OOD Guard</div>
+          <div class="stat-label">Face & Object Filter</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div>
+          <div class="stat-num">&lt; 100ms</div>
+          <div class="stat-label">Real-Time Inference</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Visual Processing Pipeline -->
     <div class="card">
       <div class="card-title">
-        <span>⚙️</span> Computer Vision Architecture Pipeline
+        <span>✨</span> Computer Vision & Deep Learning Workflow
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 10px;">
-        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
-          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 1: Preprocessing</div>
-          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
-            Input format validation, Gaussian blur noise filtering, resizing to standard 224x224, pixel normalization.
+      <p style="color: #64748b; font-size: 0.92rem; margin-bottom: 8px;">
+        End-to-end multi-stage pipeline combining classical OpenCV digital image processing with deep transfer learning:
+      </p>
+
+      <div class="workflow-grid">
+        <!-- Step 1 -->
+        <div class="workflow-card">
+          <span class="workflow-step">Stage 01</span>
+          <h3><span>📸</span> Smart Ingestion</h3>
+          <p>
+            Validates image dimensions, filters camera sensor noise via 5×5 Gaussian Blur, and normalizes pixels into tensor bounds. Intercepts human faces & non-plant objects.
           </p>
+          <div class="workflow-tags">
+            <span class="workflow-tag">Gaussian Filter</span>
+            <span class="workflow-tag">Haar Cascades</span>
+            <span class="workflow-tag">224×224</span>
+          </div>
         </div>
-        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
-          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 2: Segmentation</div>
-          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
-            HSV color thresholding & K-Means background removal. Necrotic lesion highlight and GLCM texture extraction.
+
+        <!-- Step 2 -->
+        <div class="workflow-card">
+          <span class="workflow-step">Stage 02</span>
+          <h3><span>🔬</span> HSV Segmentation</h3>
+          <p>
+            Isolates chlorophyll tissue from arbitrary backgrounds. Isolates necrotic lesions and calculates GLCM texture moments & shape compactness.
           </p>
+          <div class="workflow-tags">
+            <span class="workflow-tag">HSV Masking</span>
+            <span class="workflow-tag">Lesion Overlay</span>
+            <span class="workflow-tag">GLCM Texture</span>
+          </div>
         </div>
-        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
-          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 3: Classification</div>
-          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
-            MobileNetV2 Transfer Learning with ImageNet weights compared against a custom baseline CNN.
+
+        <!-- Step 3 -->
+        <div class="workflow-card">
+          <span class="workflow-step">Stage 03</span>
+          <h3><span>🧠</span> Deep Neural Engine</h3>
+          <p>
+            MobileNetV2 architecture with depthwise separable convolutions pre-trained on ImageNet and fine-tuned across 54,000+ plant leaf pathology images.
           </p>
+          <div class="workflow-tags">
+            <span class="workflow-tag">MobileNetV2</span>
+            <span class="workflow-tag">Transfer Learning</span>
+            <span class="workflow-tag">Softmax</span>
+          </div>
         </div>
-        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
-          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">Module 4: Advisory</div>
-          <p style="font-size: 0.85rem; color: #475569; margin-top: 6px;">
-            Structured decision support providing chemical/organic treatments and proactive cultural prevention practices.
+
+        <!-- Step 4 -->
+        <div class="workflow-card">
+          <span class="workflow-step">Stage 04</span>
+          <h3><span>🌾</span> Agronomic Advisory</h3>
+          <p>
+            Generates automated disease severity metrics, recommends targeted chemical fungicides or organic bio-treatments, and provides proactive preventative care.
           </p>
+          <div class="workflow-tags">
+            <span class="workflow-tag">Severity %</span>
+            <span class="workflow-tag">Spray Dosage</span>
+            <span class="workflow-tag">Prevention</span>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Interactive Supported Crops Explorer Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>🌱</span> Interactive Crop Pathology Explorer
+      </div>
+      <p style="color: #64748b; font-size: 0.92rem; margin-bottom: 10px;">
+        Click any crop species below to preview the specific foliar diseases diagnosed by AgriVision AI:
+      </p>
+
+      <div class="crops-pill-container">
+        <button type="button" class="crop-pill-btn active" onclick="selectCrop('tomato', this)">🍅 Tomato</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('potato', this)">🥔 Potato</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('apple', this)">🍎 Apple</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('corn', this)">🌽 Corn</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('grape', this)">🍇 Grape</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('pepper', this)">🌶️ Bell Pepper</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('strawberry', this)">🍓 Strawberry</button>
+        <button type="button" class="crop-pill-btn" onclick="selectCrop('peach', this)">🍑 Peach</button>
+      </div>
+
+      <div class="crop-disease-box" id="crop-details-box">
+        🍅 <strong>Tomato Foliage:</strong> Early Blight (Alternaria), Late Blight (Phytophthora), Septoria Leaf Spot, Bacterial Spot, Yellow Leaf Curl Virus, Spider Mites, Healthy Foliage.
       </div>
     </div>
 
@@ -228,6 +469,27 @@
       document.getElementById('camera_image').value = dataUrl;
       stopWebcam();
       document.getElementById('upload-form').submit();
+    }
+
+    // Interactive Crop Pathology Explorer
+    const cropDetails = {
+      tomato: "🍅 <strong>Tomato Foliage:</strong> Early Blight (Alternaria), Late Blight (Phytophthora), Septoria Leaf Spot, Bacterial Spot, Yellow Leaf Curl Virus, Spider Mites, Healthy Foliage.",
+      potato: "🥔 <strong>Potato Foliage:</strong> Early Blight (Alternaria solani), Late Blight (Phytophthora infestans), Healthy Foliage.",
+      apple: "🍎 <strong>Apple Foliage:</strong> Apple Scab (Venturia inaequalis), Black Rot, Cedar Apple Rust, Healthy Leaf.",
+      corn: "🌽 <strong>Corn (Maize):</strong> Common Rust (Puccinia sorghi), Northern Leaf Blight, Cercospora Gray Leaf Spot, Healthy Leaf.",
+      grape: "🍇 <strong>Grape Vine:</strong> Black Rot (Guignardia bidwellii), Esca (Black Measles), Leaf Blight (Isariopsis), Healthy Foliage.",
+      pepper: "🌶️ <strong>Bell Pepper:</strong> Bacterial Spot (Xanthomonas campestris), Healthy Foliage.",
+      strawberry: "🍓 <strong>Strawberry:</strong> Leaf Scorch (Diplocarpon earlianum), Healthy Foliage.",
+      peach: "🍑 <strong>Peach Foliage:</strong> Bacterial Spot (Xanthomonas arboricola), Healthy Leaf."
+    };
+
+    function selectCrop(cropKey, btn) {
+      document.querySelectorAll('.crop-pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const box = document.getElementById('crop-details-box');
+      if (box && cropDetails[cropKey]) {
+        box.innerHTML = cropDetails[cropKey];
+      }
     }
   </script>
 </body>
